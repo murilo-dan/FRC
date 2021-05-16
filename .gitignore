@@ -1,5 +1,5 @@
 .vscode
 udp/client
 udp/server
-tcp/client
-tcp/server
+tcp_*/client
+tcp_*/server
