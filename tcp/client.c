@@ -8,57 +8,50 @@
 #include "netdb.h"
 #include "arpa/inet.h"
 
+#define h_addr h_addr_list[0]
+
+#define PORT 9002
+#define MAX 1000
+
 int main()
 {
-int socketDescriptor, clientSocketClose;
+    char serverResponse[MAX];
+    char clientMessage[MAX];
+    int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0), socketClose;
 
-struct sockaddr_in serverAddress;
-char sendBuffer[1000],recvBuffer[1000];
-
-pid_t cpid;
-
-bzero(&serverAddress,sizeof(serverAddress));
-
-serverAddress.sin_family=AF_INET;
-serverAddress.sin_addr.s_addr=inet_addr("127.0.0.1");
-serverAddress.sin_port=htons(5500);
-
-/*Creating a socket, assigning IP address and port number for that socket*/
-socketDescriptor=socket(AF_INET,SOCK_STREAM,0);
-
-/*Connect establishes connection with the server using server IP address*/
-connect(socketDescriptor,(struct sockaddr*)&serverAddress,sizeof(serverAddress));
-
-/*Fork is used to create a new process*/
-cpid=fork();
-if(cpid==0)
-{
-while(1)
-{
-bzero(&sendBuffer,sizeof(sendBuffer));
-printf("\nEnvie uma mensagem ao servidor(Digite stop caso não haja mais dados a enviar):\n");
-/*This function is used to read from server*/
-fgets(sendBuffer,10000,stdin);
-/*Send the message to server*/
-send(socketDescriptor,sendBuffer,strlen(sendBuffer)+1,0);
-printf("\nMensagem Enviada: %s\n", sendBuffer);
-if(strcmp(sendBuffer, "stop") == 0){
-    clientSocketClose = close(socketDescriptor);
-    if(clientSocketClose==0){
-        exit(0);
+    char hostname[MAX], ipaddress[MAX];
+    struct hostent *hostIP;
+    if (gethostname(hostname, sizeof(hostname)) == 0)
+    {
+        hostIP = gethostbyname(hostname);
     }
-}
-}
-}
-else
-{
-while(1)
-{
-bzero(&recvBuffer,sizeof(recvBuffer));
-/*Receive the message from server*/
-recv(socketDescriptor,recvBuffer,sizeof(recvBuffer),0);
-printf("\nMensagem recebida pelo servidor: %s\n",recvBuffer);
-}
-}
-return 0;
+    else
+    {
+        printf("ERROR:FCC4539 IP Address Not ");
+    }
+
+    struct sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(PORT);
+    serverAddress.sin_addr.s_addr = INADDR_ANY;
+
+    connect(socketDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
+    printf("\nConexao com servidor estabelecida\n");
+
+    while (1)
+    {
+        printf("\nDigite mensagem para enviar ao servidor(Envie stop caso não haja mais dados para enviar):\n");
+        scanf("%s", clientMessage);
+        send(socketDescriptor, clientMessage, sizeof(clientMessage), 0);
+        if (strcmp(clientMessage, "stop") == 0)
+        {
+            printf("Finalizando conexão.\n");
+            socketClose = close(socketDescriptor);
+            exit(0);
+        }
+        printf("Mensagem enviada, aguardando retorno do servidor\n");
+        recv(socketDescriptor, serverResponse, sizeof(serverResponse), 0);
+        printf("\nMensagem recebida do servidor: %s\n", serverResponse);
+    }
+    return 0;
 }

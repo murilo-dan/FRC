@@ -1,71 +1,49 @@
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<stdio.h>
-#include<unistd.h>
-#include<netdb.h>
-#include<arpa/inet.h>
-#include<netinet/in.h>
-#include<string.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include "netdb.h"
+#include "arpa/inet.h"
 
-int main(int argc,char *argv[])
+#define MAX 1000
+#define BACKLOG 5
+
+int main()
 {
-int clientSocketDescriptor, socketDescriptor, clientSocketClose;
+    char serverResponse[MAX];
+    char clientMessage[MAX];
+    int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0), socketClose;
 
-struct sockaddr_in serverAddress,clientAddress;
-socklen_t clientLength;
+    struct sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(9002);
+    serverAddress.sin_addr.s_addr = INADDR_ANY;
 
-char recvBuffer[1000],sendBuffer[1000];
-pid_t cpid;
-bzero(&serverAddress,sizeof(serverAddress));
-/*Socket address structure*/
-serverAddress.sin_family=AF_INET;
-serverAddress.sin_addr.s_addr=htonl(INADDR_ANY);
-serverAddress.sin_port=htons(5500);
-/*TCP socket is created, an Internet socket address structure is filled with
-wildcard address & server’s well known port*/
-socketDescriptor=socket(AF_INET,SOCK_STREAM,0);
-/*Bind function assigns a local protocol address to the socket*/
-bind(socketDescriptor,(struct sockaddr*)&serverAddress,sizeof(serverAddress));
-/*Listen function specifies the maximum number of connections that kernel should queue
-for this socket*/
-listen(socketDescriptor,5);
-printf("%s\n","Servidor rodando");
-/*The server to return the next completed connection from the front of the
-completed connection Queue calls it*/
-clientSocketDescriptor=accept(socketDescriptor,(struct sockaddr*)&clientAddress,&clientLength);
-printf("Cliente encontrado: %d", clientSocketDescriptor);
-/*Fork system call is used to create a new process*/
-cpid=fork();
+    bind(socketDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
 
-if(cpid==0)
-{
-while(1)
-{
-bzero(&recvBuffer,sizeof(recvBuffer));
-/*Receiving the request from client*/
-recv(clientSocketDescriptor,recvBuffer,sizeof(recvBuffer),0);
-printf("\nMensagem recebida pelo cliente: %s\n",recvBuffer);
-if(strcmp(sendBuffer, "stop") == 0){
-    clientSocketClose = close(socketDescriptor);
-    if(clientSocketClose==0){
-        clientSocketDescriptor=accept(socketDescriptor,(struct sockaddr*)&clientAddress,&clientLength);
+    listen(socketDescriptor, BACKLOG);
+
+    int clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
+
+    while (1)
+    {
+        recv(clientSocketDescriptor, &clientMessage, sizeof(clientMessage), 0);
+        printf("\nMensagem recebida do cliente: %s\n", clientMessage);
+        if (strcmp(clientMessage, "stop") == 0)
+        {
+            printf("Conexao com cliente fechada, aguardando novas conexões\n");
+            clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
+        }
+        else
+        {
+            printf("\nDigite a mensagem a ser enviada para o cliente:\n");
+            fgets(serverResponse, 10000, stdin);
+            send(clientSocketDescriptor, serverResponse, sizeof(serverResponse), 0);
+            printf("Mensagem enviada ao cliente\n");
+        }
     }
-}
-}
-}
-else
-{
-while(1)
-{
-
-bzero(&sendBuffer,sizeof(sendBuffer));
-printf("\nDigite mensagem para enviar ao cliente:\n");
-/*Read the message from client*/
-fgets(sendBuffer,10000,stdin);
-/*Sends the message to client*/
-send(clientSocketDescriptor,sendBuffer,strlen(sendBuffer)+1,0);
-printf("\nMensagem enviada para o cliente\n");
-}
-}
-return 0;
+    return 0;
 }
