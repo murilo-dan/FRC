@@ -12,14 +12,15 @@
 
 int main(int argc, char *argv[])
 {
-    int sd, rc, i, n;
+    int sd, rc, n, server_size;
     struct sockaddr_in client_address;
     struct sockaddr_in server_address;
-    char msg[MAX_MSG];
+    char send_msg[MAX_MSG];
+    char recv_msg[MAX_MSG];
 
     if (argc < 3)
     {
-        printf("uso correto: %s <ip_do_servidor> <porta_do_servidor> <dado1> ... <dadoN> \n", argv[0]);
+        printf("Digite o IP e a Porta do servidor.\n");
         exit(1);
     }
 
@@ -34,32 +35,38 @@ int main(int argc, char *argv[])
     sd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sd < 0)
     {
-        printf("%s: não pode abrir o socket \n", argv[0]);
+        printf("Não foi possível abrir o socket.\n");
         exit(1);
     }
 
     rc = bind(sd, (struct sockaddr *)&client_address, sizeof(client_address));
     if (rc < 0)
     {
-        printf("%s: não pode fazer um bind da porta\n", argv[0]);
+        printf("Não foi possível realizar o bind.\n");
         exit(1);
     }
-    printf("{UDP, IP_Cli: %s, Porta_Cli: %u, IP_R: %s, Porta_R: %s}\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port), argv[1], argv[2]);
 
-    int server_size = sizeof(server_address);
-    for (i = 3; i < argc; i++)
+    server_size = sizeof(server_address);
+
+    while(1)
     {
-        rc = sendto(sd, argv[i], strlen(argv[i]), 0, (struct sockaddr *)&server_address, sizeof(server_address));
+        memset(recv_msg, 0x0, MAX_MSG);
+        memset(send_msg, 0x0, MAX_MSG);
+
+        printf("Digite a mensagem a ser enviada para o servidor: ");
+        fgets(send_msg, sizeof(send_msg), stdin);
+        rc = sendto(sd, send_msg, strlen(send_msg), 0, (struct sockaddr *)&server_address, sizeof(server_address));
         if (rc < 0)
         {
-            printf("%s: nao pode enviar dados %d \n", argv[0], i - 1);
+            printf("Não foi possível enviar os dados.\n");
             close(sd);
             exit(1);
         }
-        printf("Enviando parametro %d: %s\n", i - 2, argv[i]);
+        printf("Enviando mensagem: %s\nAguardando resposta...\n\n", send_msg);
 
-        n = recvfrom(sd, msg, MAX_MSG, 0, (struct sockaddr *)&server_address, &server_size);
-        printf("%s\n", msg);
+        n = recvfrom(sd, recv_msg, MAX_MSG, 0, (struct sockaddr *)&server_address, &server_size);
+        printf("Mensagem recebida do servidor: %s\n", recv_msg);
     }
+
     return 0;
 }

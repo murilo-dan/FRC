@@ -15,7 +15,8 @@ int main(int argc, char *argv[])
     int sd, rc, n, client_size;
     struct sockaddr_in client_address;
     struct sockaddr_in server_address;
-    char msg[MAX_MSG];
+    char send_msg[MAX_MSG];
+    char recv_msg[MAX_MSG];
 
     if (argc < 3)
     {
@@ -39,22 +40,30 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    client_size = sizeof(client_address);
+
     while (1)
     {
-        memset(msg, 0x0, MAX_MSG);
-        client_size = sizeof(client_address);
+        memset(recv_msg, 0x0, MAX_MSG);
+        memset(send_msg, 0x0, MAX_MSG);
 
-        n = recvfrom(sd, msg, MAX_MSG, 0, (struct sockaddr *)&client_address, &client_size);
+        printf("Aguardando mensagem do cliente...\n\n");
+
+        n = recvfrom(sd, recv_msg, MAX_MSG, 0, (struct sockaddr *)&client_address, &client_size);
         if (n < 0)
         {
-            printf("%s: não foi possível receber dados.\n", argv[0]);
+            printf("Não foi possível receber dados.\n");
             continue;
         }
 
-        printf("{UDP, IP_L: %s, Porta_L: %u,", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
-        printf(" IP_R: %s, Porta_R: %u}, Mensagem recebida: %s\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port), msg);
+        printf("Mensagem recebida: %s\n", recv_msg);
 
-        sendto(sd, msg, n, 0, (struct sockaddr *)&client_address, client_size);
+        printf("Digite a resposta para o cliente: ");
+        fgets(send_msg, sizeof(send_msg), stdin);
+
+        sendto(sd, send_msg, strlen(send_msg), 0, (struct sockaddr *)&client_address, client_size);
+
+        printf("Resposta enviada ao cliente.\n\n");
     }
 
     return 0;
