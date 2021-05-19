@@ -13,24 +13,30 @@
 
 void open_new_connections(int clientSocketDescriptor, int socketDescriptor)
 {
-    if (fork() == 0)
+    if (fork() > 0)
+    {
+        //o pai(primeiro cliente) cria novas conexoes para o servidor caso um novo cliente tente se conectar
+        clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
+        //a funcao de abrir novas conexoes e aberta novamente, ela e recursiva
+        open_new_connections(clientSocketDescriptor, socketDescriptor);
+    }
+    else
     {
         char serverResponse[MAX];
         char clientMessage[MAX];
         while (1)
-        {
+        {   
+            //servidor recebe mensagem de um dos clientes
             recv(clientSocketDescriptor, &clientMessage, sizeof(clientMessage), 0);
+            //o cliente que enviou a mensagem e especificado
             printf("\nMensagem recebida do cliente %d: %s\n", clientSocketDescriptor, clientMessage);
+            //servidor envia resposta ao cliente especifico
             printf("\nDigite a mensagem a ser enviada para o cliente %d:\n", clientSocketDescriptor);
             fgets(serverResponse, 10000, stdin);
             send(clientSocketDescriptor, serverResponse, sizeof(serverResponse), 0);
-            printf("Mensagem enviada ao cliente %d, caso haja outro cliente em standby digite uma mensagem:\n", clientSocketDescriptor);
+            //caso hajam outros clientes na espera de resposta o servidor pode enviar mensagens para eles tambem
+            printf("\nMensagem enviada ao cliente %d, caso haja outro cliente em standby digite a resposta para ele:\n", clientSocketDescriptor);
         }
-    }
-    else
-    {
-        clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
-        open_new_connections(clientSocketDescriptor, socketDescriptor);
     }
 }
 
@@ -45,10 +51,13 @@ int main()
 
     bind(socketDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
 
+    //servidor aguarda novas conexoes
     listen(socketDescriptor, CONNECTIONS);
 
+    //servidor recebe tentativa de conexao do cliente
     int clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
 
+    //servidor adiciona o cliente a conexoes estabelecidas
     open_new_connections(clientSocketDescriptor, socketDescriptor);
 
     return 0;

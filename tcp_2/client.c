@@ -35,15 +35,19 @@ int main()
     serverAddress.sin_port = htons(PORT);
     serverAddress.sin_addr.s_addr = INADDR_ANY;
 
+    //cliente tenta se conectar ao servidor
     connect(socketDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
     printf("\nConexao com servidor estabelecida\n");
 
     while (1)
     {
+        //cliente decide o que enviar
         printf("\nDigite mensagem para enviar ao servidor:\n");
         scanf("%s", clientMessage);
+        //cliente envia a mensagem
         send(socketDescriptor, clientMessage, sizeof(clientMessage), 0);
-        printf("Mensagem enviada, aguardando retorno do servidor\n");
+        printf("\nMensagem enviada, aguardando retorno do servidor\n");
+        //cliente aguarda resposta do servidor
         recv(socketDescriptor, serverResponse, sizeof(serverResponse), 0);
         printf("\nMensagem recebida do servidor: %s\n", serverResponse);
     }
